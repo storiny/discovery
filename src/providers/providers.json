@@ -251,7 +251,10 @@
     "schemas": [
       "twitter.com/*",
       "twitter.com/*/status/*",
-      "*.twitter.com/*/status/*"
+      "*.twitter.com/*/status/*",
+      "x.com/*",
+      "x.com/*/status/*",
+      "*.x.com/*/status/*"
     ],
     "supports_binary_theme": true,
     "origin_params": {
