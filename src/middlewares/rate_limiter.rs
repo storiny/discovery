@@ -1,22 +1,8 @@
-use actix_extensible_rate_limit::backend::{
-    Backend,
-    SimpleBackend,
-    SimpleInput,
-    SimpleOutput,
-};
-use actix_web::{
-    HttpResponse,
-    ResponseError,
-};
+use actix_extensible_rate_limit::backend::{Backend, SimpleBackend, SimpleInput, SimpleOutput};
+use actix_web::{HttpResponse, ResponseError};
 use async_trait::async_trait;
-use redis::{
-    aio::ConnectionManager,
-    AsyncCommands,
-};
-use std::{
-    borrow::Cow,
-    time::Duration,
-};
+use redis::{aio::ConnectionManager, AsyncCommands};
+use std::{borrow::Cow, time::Duration};
 use thiserror::Error;
 use tokio::time::Instant;
 
@@ -28,10 +14,10 @@ use tokio::time::Instant;
 macro_rules! async_transaction {
     ($conn:expr, $keys:expr, $body:expr) => {
         loop {
-            redis::cmd("WATCH").arg($keys).query_async($conn).await?;
+            let _: () = redis::cmd("WATCH").arg($keys).query_async($conn).await?;
 
             if let Some(response) = $body {
-                redis::cmd("UNWATCH").query_async($conn).await?;
+                let _: () = redis::cmd("UNWATCH").query_async($conn).await?;
                 break response;
             }
         }
@@ -184,7 +170,7 @@ impl SimpleBackend for RedisBackend {
     async fn remove_key(&self, key: &str) -> Result<(), Self::Error> {
         let key = self.make_key(key);
         let mut con = self.connection.clone();
-        con.del(key.as_ref()).await?;
+        let _: () = con.del(key.as_ref()).await?;
         Ok(())
     }
 }
@@ -305,11 +291,10 @@ mod tests {
             .await
             .unwrap();
         // In which case nothing should happen
-        assert!(
-            !con.exists::<_, bool>("test_rollback_key_gone")
-                .await
-                .unwrap()
-        );
+        assert!(!con
+            .exists::<_, bool>("test_rollback_key_gone")
+            .await
+            .unwrap());
     }
 
     #[tokio::test]
@@ -343,17 +328,15 @@ mod tests {
             key: "test_key_prefix".to_string(),
         };
         backend.request(input.clone()).await.unwrap();
-        assert!(
-            con.exists::<_, bool>("prefix:test_key_prefix")
-                .await
-                .unwrap()
-        );
+        assert!(con
+            .exists::<_, bool>("prefix:test_key_prefix")
+            .await
+            .unwrap());
 
         backend.remove_key("test_key_prefix").await.unwrap();
-        assert!(
-            !con.exists::<_, bool>("prefix:test_key_prefix")
-                .await
-                .unwrap()
-        );
+        assert!(!con
+            .exists::<_, bool>("prefix:test_key_prefix")
+            .await
+            .unwrap());
     }
 }

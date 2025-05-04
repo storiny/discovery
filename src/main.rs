@@ -1,38 +1,19 @@
 use actix_cors::Cors;
-use actix_extensible_rate_limit::{
-    backend::SimpleInputFunctionBuilder,
-    RateLimiter,
-};
-use actix_web::{
-    http::header::ContentType,
-    web,
-    App,
-    HttpResponse,
-    HttpServer,
-    Responder,
-};
+use actix_extensible_rate_limit::{backend::SimpleInputFunctionBuilder, RateLimiter};
+use actix_files as fs;
+use actix_web::{http::header::ContentType, web, App, HttpResponse, HttpServer, Responder};
 use dotenv::dotenv;
 use redis::aio::ConnectionManager;
-use std::{
-    io,
-    sync::Arc,
-    time::Duration,
-};
+use std::{io, sync::Arc, time::Duration};
 use storiny_discovery::{
     config::get_app_config,
     constants::redis_namespaces::RedisNamespace,
     routes,
-    telemetry::{
-        get_subscriber,
-        init_subscriber,
-    },
+    telemetry::{get_subscriber, init_subscriber},
 };
 use tracing::error;
 use tracing_actix_web::TracingLogger;
-use tracing_subscriber::{
-    layer::SubscriberExt,
-    util::SubscriberInitExt,
-};
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 mod middlewares;
 
@@ -147,6 +128,12 @@ fn main() -> io::Result<()> {
                         .wrap(actix_web::middleware::NormalizePath::trim())
                         .app_data(web_config.clone())
                         .configure(routes::init_routes)
+                        // This service must be registered at last due to the `mount_path` being `/`.
+                        .service(
+                            fs::Files::new("/", "./static")
+                                .use_etag(true)
+                                .use_last_modified(true),
+                        )
                         .default_service(web::route().to(not_found))
                 })
                 .bind((host, port))?

@@ -60,6 +60,16 @@
     }
   },
   {
+    "name": "GitHub Gist",
+    "schemas": [
+      "gist.github.com/*/*"
+    ],
+    "supports_oembed": false,
+    "stylesheets": [
+      "gist.css"
+    ]
+  },
+  {
     "name": "Figma",
     "embed_endpoint": "https://www.figma.com/embed",
     "schemas": [

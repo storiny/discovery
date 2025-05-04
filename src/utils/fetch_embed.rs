@@ -1,13 +1,11 @@
 use crate::{
     error::AppError,
-    request::{
-        REQUEST_CLIENT,
-        USER_AGENT,
-    },
+    request::{REQUEST_CLIENT, USER_AGENT},
     spec::EmbedResponse,
 };
 use hashbrown::HashMap;
 use reqwest::header;
+use serde::de::DeserializeOwned;
 use url::Url;
 
 /// The request for fetching the oembed data.
@@ -93,6 +91,22 @@ impl Client {
                 response
             })?)
     }
+
+    /// Fetches custom JSON data from the endpoint of the provider.
+    ///
+    /// * `endpoint` - The provider endpoint.
+    pub async fn custom_fetch<T: DeserializeOwned>(&self, endpoint: &str) -> Result<T, AppError> {
+        let url = Url::parse(endpoint)?;
+        Ok(self
+            .0
+            .get(url)
+            .header(header::USER_AGENT, USER_AGENT)
+            .send()
+            .await?
+            .error_for_status()?
+            .json()
+            .await?)
+    }
 }
 
 /// Fetches oembed data from the endpoint of the provider.
@@ -108,9 +122,19 @@ pub async fn fetch_embed(
         .await
 }
 
+/// Fetches custom JSON data from the endpoint of the provider.
+///
+/// * `endpoint` - The provider oEmbed endpoint.
+pub async fn fetch_custom_data<T: DeserializeOwned>(endpoint: &str) -> Result<T, AppError> {
+    Client::new(REQUEST_CLIENT.clone())
+        .custom_fetch(endpoint)
+        .await
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::spec::GitHubGistResponse;
     use mockito::Server;
     use urlencoding::encode;
 
@@ -147,6 +171,31 @@ mod tests {
                 extra: HashMap::default(),
             }
         );
+
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn can_fetch_custom_json_data() {
+        let mut server = Server::new_async().await;
+        let url = server.url();
+        let res = GitHubGistResponse {
+            div: "<div>test</div>".to_string(),
+            owner: "test".to_string(),
+            public: true,
+            stylesheet: "https://stylesheet.test".to_string(),
+        };
+
+        let mock = server
+            .mock("GET", "/")
+            .with_status(200)
+            .with_body(serde_json::to_string(&res).unwrap())
+            .with_header("content-type", "application/json")
+            .create_async()
+            .await;
+        let result = fetch_custom_data::<GitHubGistResponse>(&url).await;
+
+        assert_eq!(result.unwrap(), res);
 
         mock.assert_async().await;
     }

@@ -1,37 +1,23 @@
+use crate::spec::GitHubGistResponse;
+use crate::utils::fetch_embed::fetch_custom_data;
+use crate::utils::parse_html::ScriptResult;
 use crate::{
     config::Config,
     error::AppError,
     spec::EmbedType,
     utils::{
         decompress_url::decompress_url,
-        fetch_embed::{
-            fetch_embed,
-            ConsumerRequest,
-        },
+        fetch_embed::{fetch_embed, ConsumerRequest},
         get_metadata::get_metadata,
-        parse_html::{
-            parse_html,
-            ParseResult,
-        },
+        parse_html::{parse_html, ParseResult},
         resolve_provider::resolve_provider,
     },
-    IframeEmbedData,
-    IframeTemplate,
-    PhotoEmbedData,
-    PhotoTemplate,
+    IframeEmbedData, IframeTemplate, PhotoEmbedData, PhotoTemplate,
 };
-use actix_web::{
-    get,
-    http::header::ContentType,
-    web,
-    HttpResponse,
-};
+use actix_web::{get, http::header::ContentType, web, HttpResponse};
 use sailfish::TemplateOnce;
 use serde::Deserialize;
-use tracing::{
-    debug,
-    trace,
-};
+use tracing::{debug, trace};
 use url::Url;
 
 // TODO: Write tests
@@ -85,15 +71,28 @@ async fn get(
         Some(value) => value,
         None => {
             debug!("provider not found, responding with metadata instead");
-
             return Ok(respond_with_metadata(&config, url.as_ref()).await);
         }
     };
 
     tracing::Span::current().record("resolved_provider", provider.name);
 
-    let theme = query.theme.clone().unwrap_or("light".to_string());
+    // Handle GitHub Gists separately.
+    if provider.name == "GitHub Gist" {
+        let path = url.path().split(".").next(); // Ignore file extensions.
+        let endpoint = format!("https://gist.github.com{}.json", path.unwrap_or_default());
+        let response = fetch_custom_data::<GitHubGistResponse>(&endpoint).await?;
 
+        return Ok(HttpResponse::Ok().json(&ScriptResult {
+            embed_type: "github_gist".to_string(),
+            html: response.div,
+            supports_binary_theme: provider.supports_binary_theme,
+            stylesheets: provider.stylesheets.clone(),
+            sources: vec![],
+        }));
+    };
+
+    let theme = query.theme.clone().unwrap_or("light".to_string());
     let padding_styles = format!(
         "{}{}",
         provider

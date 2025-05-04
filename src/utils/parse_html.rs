@@ -1,14 +1,8 @@
-use crate::spec::{
-    EmbedResponse,
-    EmbedType,
-};
+use crate::spec::{EmbedResponse, EmbedType};
 use hashbrown::HashMap;
 use serde_this_or_that::Serialize;
 use url::Url;
-use visdom::{
-    types::IAttrValue,
-    Vis,
-};
+use visdom::{types::IAttrValue, Vis};
 
 /// The default height in pixels.
 const DEFAULT_HEIGHT: u16 = 360;
@@ -42,6 +36,8 @@ pub struct ScriptResult {
     pub html: String,
     /// A list of script sources.
     pub sources: Vec<String>,
+    /// A list of CSS stylesheet sources.
+    pub stylesheets: Vec<String>,
     /// The type of the embed.
     pub embed_type: String,
     /// The binary theme flag.
@@ -172,7 +168,6 @@ fn parse_response_impl(
 
         scripts.for_each(|_, script_node| {
             sources.push(attr_to_string(script_node.get_attribute("src")));
-
             true
         });
 
@@ -183,6 +178,7 @@ fn parse_response_impl(
             embed_type: "sourced_oembed".to_string(),
             supports_binary_theme: *supports_binary_theme,
             html: root.outer_html(),
+            stylesheets: vec![],
             sources,
         }))
     }
@@ -227,11 +223,7 @@ pub fn parse_html(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::spec::{
-        Photo,
-        Rich,
-        Video,
-    };
+    use crate::spec::{Photo, Rich, Video};
 
     #[test]
     fn can_parse_video_embed() {
@@ -498,6 +490,7 @@ mod tests {
                 embed_type: "sourced_oembed".to_string(),
                 html: r#"<blockquote></blockquote>"#.to_string(),
                 supports_binary_theme: false,
+                stylesheets: vec![],
                 sources: vec![]
             })
         );
@@ -523,6 +516,7 @@ mod tests {
                 embed_type: "sourced_oembed".to_string(),
                 html: r#"<blockquote></blockquote>"#.to_string(),
                 supports_binary_theme: false,
+                stylesheets: vec![],
                 sources: vec![
                     "https://example.com/some.js".to_string(),
                     "https://example.com/other.js".to_string()

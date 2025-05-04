@@ -1,10 +1,6 @@
 use hashbrown::HashMap;
 use regex::Regex;
-use serde::{
-    Deserialize,
-    Deserializer,
-    Serialize,
-};
+use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 
 /// The embed provider.
@@ -38,6 +34,9 @@ pub struct Provider {
     /// the oembed spec.
     #[serde(default = "true_value")]
     pub supports_oembed: bool,
+    /// The optional CSS stylesheets for embeds served by this provider.
+    #[serde(default)]
+    pub stylesheets: Vec<String>,
     /// The DOM attributes for the embed iframe element.
     #[serde(default)]
     pub iframe_attrs: Option<HashMap<&'static str, &'static str>>,
@@ -127,6 +126,19 @@ pub struct EmbedResponse {
     pub title: Option<String>,
     #[serde(flatten)]
     pub extra: HashMap<String, Value>,
+}
+
+/// The GitHub Gist embed response from https://gist.github.com/username/gist.json.
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+pub struct GitHubGistResponse {
+    /// The Gist's public flag.
+    pub public: bool,
+    /// The owner of this Gist.
+    pub owner: String,
+    /// The Gist's HTML content.
+    pub div: String,
+    /// Default Gist stylesheet.
+    pub stylesheet: String,
 }
 
 /// Deserializes u16 from a number or a string, since some providers could return numbers as
