@@ -42,6 +42,8 @@ pub struct ScriptResult {
     pub embed_type: String,
     /// The binary theme flag.
     pub supports_binary_theme: bool,
+    /// The shadow DOM flag.
+    pub supports_shadow_dom: bool,
 }
 
 /// The result of parsing the response.
@@ -59,17 +61,21 @@ pub enum ParseResult {
 /// * `width_prop` - The width value (in px).
 /// * `height_prop` - The height value (in px).
 /// * `title_prop` - The embed title value.
+/// * `padding_styles` - The CSS padding styles for <iframe> element.
 /// * `iframe_params` - Optional extra iframe params (appended to the iframe src).
 /// * `iframe_attrs` - Optional iframe attributes.
 /// * `supports_binary_theme` - The binary theme flag.
+/// * `supports_shadow_dom` - The shadow DOM flag.
 fn parse_response_impl(
     html: &str,
     width_prop: &Option<u16>,
     height_prop: &Option<u16>,
     title_prop: &Option<String>,
+    padding_styles: &str,
     iframe_params: &Option<HashMap<&str, &str>>,
     iframe_attrs: &Option<HashMap<&str, &str>>,
-    supports_binary_theme: &bool,
+    supports_binary_theme: bool,
+    supports_shadow_dom: bool,
 ) -> Option<ParseResult> {
     let mut width = width_prop.unwrap_or(DEFAULT_WIDTH);
     let mut height = height_prop.unwrap_or(DEFAULT_HEIGHT);
@@ -83,8 +89,17 @@ fn parse_response_impl(
         let mut wrapper = iframe.parent("div").first();
         let has_wrapper = !wrapper.is_empty();
 
-        let style_attr =
+        let mut style_attr =
             attr_to_string((if has_wrapper { &wrapper } else { &iframe }).attr("style"));
+
+        // Append padding styles.
+        if !padding_styles.is_empty() {
+            if style_attr.ends_with(";") {
+                style_attr = format!("{style_attr}{padding_styles}");
+            } else {
+                style_attr = format!("{style_attr};{padding_styles}");
+            }
+        }
 
         let title = title_prop
             .clone()
@@ -139,6 +154,8 @@ fn parse_response_impl(
             iframe_html: root.outer_html(),
             wrapper_styles: if has_wrapper && !style_attr.is_empty() {
                 style_attr
+            } else if !padding_styles.is_empty() {
+                padding_styles.to_string()
             } else if has_fixed_size {
                 format!(
                     "--padding-desktop:{:.2}%",
@@ -176,7 +193,8 @@ fn parse_response_impl(
 
         Some(ParseResult::ScriptResult(ScriptResult {
             embed_type: "sourced_oembed".to_string(),
-            supports_binary_theme: *supports_binary_theme,
+            supports_binary_theme,
+            supports_shadow_dom,
             html: root.outer_html(),
             stylesheets: vec![],
             sources,
@@ -189,13 +207,17 @@ fn parse_response_impl(
 /// * `response` - The provider response.
 /// * `iframe_params` - Optional extra iframe parameters.
 /// * `iframe_attrs` - Optional iframe attributes.
+/// * `padding_styles` - The CSS padding styles for <iframe> element.
 /// * `supports_binary_theme` - The boolean flag indicating whether the provider supports binary
 ///   theme.
+/// * `supports_shadow_dom` - The boolean flag indicating whether the provider supports embedding inside shadow DOM.
 pub fn parse_html(
     response: &EmbedResponse,
     iframe_params: &Option<HashMap<&str, &str>>,
     iframe_attrs: &Option<HashMap<&str, &str>>,
-    supports_binary_theme: &bool,
+    padding_styles: &str,
+    supports_binary_theme: bool,
+    supports_shadow_dom: bool,
 ) -> Option<ParseResult> {
     match &response.oembed_type {
         EmbedType::Video(data) => parse_response_impl(
@@ -203,18 +225,22 @@ pub fn parse_html(
             &data.width,
             &data.height,
             &response.title,
+            padding_styles,
             iframe_params,
             iframe_attrs,
             supports_binary_theme,
+            supports_shadow_dom,
         ),
         EmbedType::Rich(data) => parse_response_impl(
             &data.html,
             &data.width,
             &data.height,
             &response.title,
+            padding_styles,
             iframe_params,
             iframe_attrs,
             supports_binary_theme,
+            supports_shadow_dom,
         ),
         _ => None,
     }
@@ -236,7 +262,7 @@ mod tests {
             title: Some("Video embed title".to_string()),
             extra: Default::default(),
         };
-        let result = parse_html(&video_response, &None, &None, &false).unwrap();
+        let result = parse_html(&video_response, &None, &None, "", false, false).unwrap();
 
         assert_eq!(
             result,
@@ -260,7 +286,7 @@ mod tests {
             title: Some("Rich embed title".to_string()),
             extra: Default::default(),
         };
-        let result = parse_html(&rich_response, &None, &None, &false).unwrap();
+        let result = parse_html(&rich_response, &None, &None, "", false, false).unwrap();
 
         assert_eq!(
             result,
@@ -284,7 +310,7 @@ mod tests {
             title: Some("Embed title".to_string()),
             extra: Default::default(),
         };
-        let result = parse_html(&response, &None, &None, &false);
+        let result = parse_html(&response, &None, &None, "", false, false);
 
         assert_eq!(result, None);
     }
@@ -300,7 +326,7 @@ mod tests {
             title: Some("Embed title".to_string()),
             extra: Default::default(),
         };
-        let result = parse_html(&response, &None, &None, &false).unwrap();
+        let result = parse_html(&response, &None, &None, "", false, false).unwrap();
 
         assert_eq!(
             result,
@@ -324,7 +350,7 @@ mod tests {
             title: Some("Embed title".to_string()),
             extra: Default::default(),
         };
-        let result = parse_html(&response, &None, &None, &false).unwrap();
+        let result = parse_html(&response, &None, &None, "", false, false).unwrap();
 
         assert_eq!(
             result,
@@ -350,7 +376,7 @@ mod tests {
             title: Some("Embed title".to_string()),
             extra: Default::default(),
         };
-        let result = parse_html(&response, &None, &None, &false).unwrap();
+        let result = parse_html(&response, &None, &None, "", false, false).unwrap();
 
         assert_eq!(
             result,
@@ -374,7 +400,7 @@ mod tests {
             title: Some("Embed title".to_string()),
             extra: Default::default(),
         };
-        let result = parse_html(&response, &None, &None, &false).unwrap();
+        let result = parse_html(&response, &None, &None, "", false, false).unwrap();
 
         assert_eq!(
             result,
@@ -403,7 +429,7 @@ mod tests {
 
         iframe_params.insert("some_param", "some_value");
 
-        let result = parse_html(&response, &Some(iframe_params), &None, &false).unwrap();
+        let result = parse_html(&response, &Some(iframe_params), &None, "", false, false).unwrap();
 
         assert_eq!(
             result,
@@ -431,7 +457,7 @@ mod tests {
 
         iframe_params.insert("some_param", "some_value");
 
-        let result = parse_html(&response, &Some(iframe_params), &None, &false).unwrap();
+        let result = parse_html(&response, &Some(iframe_params), &None, "", false, false).unwrap();
 
         assert_eq!(
             result,
@@ -459,7 +485,7 @@ mod tests {
 
         iframe_attrs.insert("allowfullscreen", "true");
 
-        let result = parse_html(&response, &None, &Some(iframe_attrs), &false).unwrap();
+        let result = parse_html(&response, &None, &Some(iframe_attrs), "", false, false).unwrap();
 
         assert_eq!(
             result,
@@ -482,7 +508,7 @@ mod tests {
             title: Some("Embed title".to_string()),
             extra: Default::default(),
         };
-        let result = parse_html(&response, &None, &None, &false).unwrap();
+        let result = parse_html(&response, &None, &None, "", false, false).unwrap();
 
         assert_eq!(
             result,
@@ -490,6 +516,7 @@ mod tests {
                 embed_type: "sourced_oembed".to_string(),
                 html: r#"<blockquote></blockquote>"#.to_string(),
                 supports_binary_theme: false,
+                supports_shadow_dom: false,
                 stylesheets: vec![],
                 sources: vec![]
             })
@@ -508,7 +535,7 @@ mod tests {
             title: Some("Embed title".to_string()),
             extra: Default::default(),
         };
-        let result = parse_html(&response, &None, &None, &false).unwrap();
+        let result = parse_html(&response, &None, &None, "", false, false).unwrap();
 
         assert_eq!(
             result,
@@ -516,6 +543,7 @@ mod tests {
                 embed_type: "sourced_oembed".to_string(),
                 html: r#"<blockquote></blockquote>"#.to_string(),
                 supports_binary_theme: false,
+                supports_shadow_dom: false,
                 stylesheets: vec![],
                 sources: vec![
                     "https://example.com/some.js".to_string(),

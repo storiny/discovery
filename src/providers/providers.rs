@@ -3,6 +3,9 @@ use lazy_static::lazy_static;
 use regex::Regex;
 use url::Url;
 
+#[cfg(debug_assertions)]
+use dotenv::dotenv;
+
 lazy_static! {
     pub static ref PROVIDERS: Vec<Provider> = {
         let json_data = include_bytes!("./providers.json");
@@ -10,13 +13,17 @@ lazy_static! {
         let mut providers: Vec<Provider> =
             serde_json::from_slice(json_data).expect("failed to read providers from the JSON file");
 
+
+        #[cfg(debug_assertions)]
+        dotenv().ok();
         // Base for stylesheets
         #[cfg(debug_assertions)]
         let base = format!(
             "http://{}:{}",
-            std::env::var("HOST").unwrap(),
-            std::env::var("PORT").unwrap()
+            std::env::var("HOST").unwrap_or_default(),
+            std::env::var("PORT").unwrap_or_default()
         );
+
         #[cfg(not(debug_assertions))]
         let base = "https://discovery.storiny.com".to_string();
 

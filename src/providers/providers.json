@@ -65,6 +65,7 @@
       "gist.github.com/*/*"
     ],
     "supports_oembed": false,
+    "supports_shadow_dom": true,
     "stylesheets": [
       "gist.css"
     ]

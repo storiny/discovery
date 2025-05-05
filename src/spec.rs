@@ -8,10 +8,10 @@ use serde_json::Value;
 pub struct Provider {
     /// The name of the provider.
     pub name: &'static str,
-    /// The provider oembed enpoint URL.
+    /// The provider oembed endpoint URL.
     #[serde(default)]
     pub endpoint: &'static str,
-    /// The provider raw embed enpoint (providers that supports embedding using a dedicated
+    /// The provider raw embed endpoint (providers that supports embedding using a dedicated
     /// endpoint).
     #[serde(default)]
     pub embed_endpoint: Option<&'static str>,
@@ -30,6 +30,9 @@ pub struct Provider {
     /// both `light` and `dark` modes.
     #[serde(default)]
     pub supports_binary_theme: bool,
+    /// The boolean flag indicating whether the provider supports embedding inside a shadow DOM.
+    #[serde(default)]
+    pub supports_shadow_dom: bool,
     /// The boolean flag indicating whether the provider supports
     /// the oembed spec.
     #[serde(default = "true_value")]

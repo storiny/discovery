@@ -87,6 +87,7 @@ async fn get(
             embed_type: "github_gist".to_string(),
             html: response.div,
             supports_binary_theme: provider.supports_binary_theme,
+            supports_shadow_dom: provider.supports_shadow_dom,
             stylesheets: provider.stylesheets.clone(),
             sources: vec![],
         }));
@@ -196,7 +197,9 @@ async fn get(
                     &response,
                     &iframe_params,
                     &provider.iframe_attrs,
-                    &provider.supports_binary_theme,
+                    &padding_styles,
+                    provider.supports_binary_theme,
+                    provider.supports_shadow_dom,
                 );
 
                 let parse_result = match parse_result {
