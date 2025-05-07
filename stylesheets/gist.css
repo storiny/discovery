@@ -46,8 +46,11 @@
 
     /* Custom */
     --bgColor-meta: #f7f7f7;
+    --fgColor-link: #1968d8;
     --fgColor-highlight: #333;
     --divider: hsl(0deg 0% 85%);
+    --control-borderColor-rest: #d1d9e0;
+    --shadow-inset: inset 0px 1px 0px 0px #1f23280a;
     --pl-c: #6a737d;
     --pl-c1: #005cc5;
     --pl-en: #6f42c1;
@@ -76,11 +79,16 @@
 :host([data-theme="dark"]) .gist,
 :host([data-theme="dark"]) .gist ::backdrop {
     --bgColor-default: #24292e;
+    --bgColor-muted: #151b23;
     --bgColor-meta: #2f373f;
     --fgColor-default: #f6f8fa;
     --fgColor-muted: #b5b5b5;
     --fgColor-highlight: #C5C8C6;
+    --fgColor-link: #0ea7fc;
+    --borderColor-default: #3d444d;
     --divider: hsl(217deg 16% 25%);
+    --control-borderColor-rest: #3d444d;
+    --shadow-inset: inset 0px 1px 0px 0px #0104093d;
     --pl-c: #959da5;
     --pl-c1: #c8e1ff;
     --pl-en: #b392f0;
@@ -139,6 +147,10 @@
 
 .gist .markdown-body > *:last-child {
     margin-bottom: 0 !important;
+}
+
+.gist .markdown-body a[href] {
+    color: var(--fgColor-link);
 }
 
 .gist .markdown-body a:not([href]) {
@@ -777,32 +789,30 @@
     color: var(--fgColor-default);
 }
 
+.gist .form-control,
+.gist .form-select {
+    padding: 5px 12px;
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--fgColor-default);
+    vertical-align: middle;
+    background-color: var(--bgColor-default);
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    border: 1px solid var(--control-borderColor-rest);
+    border-radius: 6px;
+    box-shadow: var(--shadow-inset);
+    transition: 80ms cubic-bezier(0.33, 1, 0.68, 1);
+    transition-property: color, background-color, box-shadow, border-color;
+}
+
 .gist .blob-interaction-bar {
-    position: relative;
-    background-color: var(--bgColor-muted);
-}
-
-.gist .blob-interaction-bar::before {
-    display: table;
-    content: "";
-}
-
-.gist .blob-interaction-bar::after {
-    display: table;
-    clear: both;
-    content: "";
-}
-
-.gist .blob-interaction-bar .octicon-search {
-    position: absolute;
-    top: 6px;
-    left: 10px;
-    font-size: 12px;
-    color: var(--fgColor-muted);
+    display: none;
 }
 
 .gist .blob-filter {
     width: 100%;
+    padding: 4px 16px 4px 32px;
     font-size: 12px;
     border: 0;
     border-radius: 0;
@@ -1673,7 +1683,7 @@
 }
 
 .gist .gist-file article {
-    padding: 6px;
+    padding: 6px 16px;
 }
 
 .gist .gist-file .scroll .gist-data {
